@@ -8,7 +8,9 @@
 
 
 import java.io.IOException;
-import java.nio.file.Path;
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,7 +19,7 @@ import java.util.Enumeration;
 import java.util.jar.JarEntry;
 
 public class JarClasses {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
 
         // Exception handling, incase nothing was passed in the args
         if (args.length < 1) {
@@ -46,13 +48,23 @@ public class JarClasses {
                 classNames.add(conversion);
             }
         }
+        // Loading each class
+        // points to the jat
+        File jarFile = new File(file);
+        URL url = jarFile.toURI().toURL();
+        // Place the url into an array
+        URL[] url1 = new URL[]{ url };
+        URLClassLoader loader = new URLClassLoader(url1);
+
         // Sort the list
         Collections.sort(classNames);
+
         for (String sortNames : classNames) {
-            System.out.println(sortNames);
+            Class<?> load = loader.loadClass(sortNames);
+            System.out.println("----------" + load.getName() + "----------");
         }
 
+
+
     }
-
-
 }
