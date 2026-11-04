@@ -9,6 +9,8 @@
 
 import java.io.IOException;
 import java.io.File;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -19,7 +21,7 @@ import java.util.Enumeration;
 import java.util.jar.JarEntry;
 
 public class JarClasses {
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    public static void main(String[] args) throws IOException {
 
         // Exception handling, incase nothing was passed in the args
         if (args.length < 1) {
@@ -31,40 +33,94 @@ public class JarClasses {
         // Create a String path to open a file from the args
         String file = args[0];
 
-        // Create a jar file
-         JarFile jar = new JarFile(file);
-         // Create a list to hold the classnames
+        // Create a list to hold the classnames
         List<String> classNames = new ArrayList<>();
-        // Shift through the jar file and print the entries
-        Enumeration<JarEntry> shiftThrough = jar.entries();
-        while (shiftThrough.hasMoreElements()) {
-            JarEntry entry = shiftThrough.nextElement();
-            // get the name
-            String name = entry.getName();
-            // Filter
-            if (name.endsWith(".class") &&  ! name.startsWith("META-INF/")) {
-                String cleanName = name.substring(0, name.length() - 6);
-                String conversion = cleanName.replace("/", ".");
-                classNames.add(conversion);
+
+        // Create a jar file
+        try (JarFile jar = new JarFile(file)) {
+            // Shift through the jar file and print the entries
+            Enumeration<JarEntry> shiftThrough = jar.entries();
+            while (shiftThrough.hasMoreElements()) {
+                JarEntry entry = shiftThrough.nextElement();
+                // get the name
+                String name = entry.getName();
+                // Filter
+                if (name.endsWith(".class") && !name.startsWith("META-INF/")) {
+                    String cleanName = name.substring(0, name.length() - 6);
+                    String conversion = cleanName.replace("/", ".");
+                    classNames.add(conversion);
+                }
             }
         }
-        // Loading each class
-        // points to the jat
-        File jarFile = new File(file);
-        URL url = jarFile.toURI().toURL();
-        // Place the url into an array
-        URL[] url1 = new URL[]{ url };
-        URLClassLoader loader = new URLClassLoader(url1);
 
         // Sort the list
         Collections.sort(classNames);
 
-        for (String sortNames : classNames) {
-            Class<?> load = loader.loadClass(sortNames);
-            System.out.println("----------" + load.getName() + "----------");
+        // Loading each class
+        // points to the jar
+        File jarFile = new File(file);
+        URL url = jarFile.toURI().toURL();
+        // Place the url into an array
+        URL[] url1 = new URL[]{ url };
+
+        // Handle classes that fail:
+        try (URLClassLoader loader = new URLClassLoader(url1)) {
+            // In the sorted lines, add the header print style
+            for (String sortNames : classNames) {
+                try {
+                    Class<?> load = loader.loadClass(sortNames);
+                    System.out.println("----------" + load.getName() + "----------");
+                    // Get the methods
+                    Method[] methods = load.getDeclaredMethods();
+                    // Counter for public methods
+                    int publicCount = 0;
+                    // organize public methods used
+                    for (Method method : methods) {
+                        int modifiers = method.getModifiers();
+                        if (Modifier.isPublic(modifiers)) {
+                            publicCount += 1;
+                        }
+                    }
+                    // Counter for private
+                    int privateCount = 0;
+                    // Organize and collect private methods to display
+                    for (Method method : methods) {
+                        int modifiers = method.getModifiers();
+                        if (Modifier.isPrivate(modifiers)) {
+                            privateCount += 1;
+                        }
+                    }
+                    // Counter for protected
+                    int protectedCount = 0;
+                    // Organize and collect protected methods to display
+                    for (Method method : methods) {
+                        int modifiers = method.getModifiers();
+                        if (Modifier.isProtected(modifiers)) {
+                            protectedCount += 1;
+                        }
+                    }
+                    // Counter for static
+                    int staticCount = 0;
+                    // Organize and collect static methods to display
+                    for (Method method : methods) {
+                        int modifiers = method.getModifiers();
+                        if (Modifier.isStatic(modifiers)) {
+                            staticCount += 1;
+                        }
+                    }
+
+                    // Output expected format
+                    System.out.println("  Public methods: " + publicCount);
+                    System.out.println("  Private methods: " + privateCount);
+                    System.out.println("  Protected methods: " + protectedCount);
+                    System.out.println("  Static methods: " + staticCount);
+
+                    int length = load.getDeclaredFields().length;
+                    System.out.println("  Fields: " + length);
+                } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                    System.out.println("Could not examine: " + sortNames);
+                }
+            }
         }
-
-
-
     }
 }
