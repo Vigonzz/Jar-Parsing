@@ -9,19 +9,50 @@
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.jar.JarFile;
+import java.util.Enumeration;
+import java.util.jar.JarEntry;
 
 public class JarClasses {
     public static void main(String[] args) throws IOException {
 
+        // Exception handling, incase nothing was passed in the args
+        if (args.length < 1) {
+
+            System.err.println("Need a a jar file");
+            System.err.println("Enter file as: java filename.java ");
+            System.exit(1);
+        }
         // Create a String path to open a file from the args
         String file = args[0];
 
-        // Converting the string to a Path object
-        Path path = Path.of(file);
+        // Create a jar file
+         JarFile jar = new JarFile(file);
+         // Create a list to hold the classnames
+        List<String> classNames = new ArrayList<>();
+        // Shift through the jar file and print the entries
+        Enumeration<JarEntry> shiftThrough = jar.entries();
+        while (shiftThrough.hasMoreElements()) {
+            JarEntry entry = shiftThrough.nextElement();
+            // get the name
+            String name = entry.getName();
+            // Filter
+            if (name.endsWith(".class") &&  ! name.startsWith("META-INF/")) {
+                String cleanName = name.substring(0, name.length() - 6);
+                String conversion = cleanName.replace("/", ".");
+                classNames.add(conversion);
+            }
+        }
+        // Sort the list
+        Collections.sort(classNames);
+        for (String sortNames : classNames) {
+            System.out.println(sortNames);
+        }
 
-        // Output the Path
-        System.out.println(path);
     }
+
 
 }
